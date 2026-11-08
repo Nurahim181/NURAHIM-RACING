@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ky">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NURAHIM RACING</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #101820;
+  color: white;
+  font-family: Arial;
+  text-align: center;
+}
+
+h1 {
+  color: #00e5ff;
+  margin: 15px;
+}
+
+#game {
+  width: 100%;
+  max-width: 420px;
+  height: 72vh;
+  min-height: 400px;
+  margin: auto;
+  position: relative;
+  overflow: hidden;
+  background: #333;
+  border-left: 5px solid white;
+  border-right: 5px solid white;
+}
+
+#road {
+  position: absolute;
+  width: 100%;
+  height: 200%;
+  top: -100%;
+  background: repeating-linear-gradient(
+    to bottom,
+    #444 0px,
+    #444 45px,
+    #555 45px,
+    #555 90px
+  );
+}
+
+.line {
+  position: absolute;
+  height: 100%;
+  width: 6px;
+  background: repeating-linear-gradient(
+    to bottom,
+    white 0px,
+    white 40px,
+    transparent 40px,
+    transparent 80px
+  );
+  left: 33%;
+}
+
+.line.two {
+  left: 66%;
+}
+
+.car {
+  position: absolute;
+  width: 48px;
+  height: 82px;
+  border-radius: 12px;
+  background: #00e5ff;
+  border: 4px solid #fff;
+  bottom: 20px;
+  left: calc(50% - 24px);
+  z-index: 5;
+}
+
+.car::before {
+  content: "";
+  position: absolute;
+  width: 28px;
+  height: 30px;
+  background: #123;
+  top: 12px;
+  left: 6px;
+  border-radius: 6px;
+}
+
+.enemy {
+  position: absolute;
+  width: 48px;
+  height: 82px;
+  background: #ff3030;
+  border: 4px solid white;
+  border-radius: 12px;
+  z-index: 4;
+}
+
+#score {
+  font-size: 23px;
+  margin: 10px;
+  color: #00ff9d;
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 35px;
+  margin: 15px;
+}
+
+button {
+  border: none;
+  padding: 15px 30px;
+  border-radius: 15px;
+  background: #00d9ff;
+  font-size: 22px;
+  font-weight: bold;
+}
+
+#start {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.85);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+#start button {
+  background: #00ff9d;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>🏎️ NURAHIM RACING</h1>
+
+<div id="score">Упай: 0</div>
+
+<div id="game">
+
+<div id="road">
+  <div class="line"></div>
+  <div class="line two"></div>
+</div>
+
+<div id="player" class="car"></div>
+
+<div id="start">
+  <h2>NURAHIM RACING</h2>
+  <p>Машинаңды башкар жана жарыш!</p>
+  <button onclick="startGame()">ОЮНДУ БАШТА</button>
+</div>
+
+</div>
+
+<div class="controls">
+  <button onclick="move(-1)">⬅️</button>
+  <button onclick="move(1)">➡️</button>
+</div>
+
+<script>
+
+const game = document.getElementById("game");
+const player = document.getElementById("player");
+const scoreText = document.getElementById("score");
+const startScreen = document.getElementById("start");
+
+let lane = 1;
+let score = 0;
+let speed = 4;
+let running = false;
+let enemies = [];
+let animation;
+let spawnTimer = 0;
+
+function move(direction) {
+  if (!running) return;
+  lane += direction;
+  lane = Math.max(0, Math.min(2, lane));
+  player.style.left =
+    `calc(${lane * 33.333 + 16.666}% - 24px)`;
+}
+
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowLeft") move(-1);
+  if (e.key === "ArrowRight") move(1);
+});
+
+function startGame() {
+  cancelAnimationFrame(animation);
+  enemies.forEach(e => e.remove());
+  enemies = [];
+
+  lane = 1;
+  score = 0;
+  speed = 4;
+  spawnTimer = 0;
+  running = true;
+
+  player.style.left = "calc(50% - 24px)";
+  scoreText.innerText = "Упай: 0";
+  startScreen.style.display = "none";
+
+  loop();
+}
+
+function spawnEnemy() {
+  let enemy = document.createElement("div");
+  enemy.className = "enemy";
+
+  let randomLane = Math.floor(Math.random() * 3);
+
+  enemy.style.left =
+    `calc(${randomLane * 33.333 + 16.666}% - 24px)`;
+
+  enemy.style.top = "-90px";
+
+  game.appendChild(enemy);
+  enemies.push(enemy);
+}
+
+function loop() {
+  if (!running) return;
+
+  spawnTimer++;
+
+  if (spawnTimer > 55) {
+    spawnEnemy();
+    spawnTimer = 0;
+  }
+
+  enemies.forEach((enemy, index) => {
+    let y = enemy.offsetTop + speed;
+    enemy.style.top = y + "px";
+
+    let a = player.getBoundingClientRect();
+    let b = enemy.getBoundingClientRect();
+
+    if (
+      a.left < b.right - 8 &&
+      a.right > b.left + 8 &&
+      a.top < b.bottom - 8 &&
+      a.bottom > b.top + 8
+    ) {
+      gameOver();
+    }
+
+    if (y > game.clientHeight) {
+      enemy.remove();
+      enemies.splice(index, 1);
+      score += 10;
+      scoreText.innerText = "Упай: " + score;
+
+      if (score % 100 === 0) speed += 0.5;
+    }
+  });
+
+  animation = requestAnimationFrame(loop);
+}
+
+function gameOver() {
+  running = false;
+  cancelAnimationFrame(animation);
+
+  startScreen.style.display = "flex";
+  startScreen.innerHTML = `
+    <h2>💥 ОЮН БҮТТҮ!</h2>
+    <h3>Упайың: ${score}</h3>
+    <button onclick="startGame()">КАЙРА ОЙНОО</button>
+  `;
+}
+
+</script>
+
+</body>
+</html>
